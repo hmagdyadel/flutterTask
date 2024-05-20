@@ -9,72 +9,40 @@ class WebViewScreen extends StatefulWidget {
 }
 
 class WebViewScreenState extends State<WebViewScreen> {
-   WebViewController? webViewController;
-  String textFromWebPage = '';
-
-  @override
-  void initState() {
-    super.initState();
-    // Enabling virtual display for WebView on Android
-    if (WebView.platform is AndroidWebView) {
-      WebView.platform = SurfaceAndroidWebView();
-    }
-  }
+  late WebViewController webViewController;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Task'),
+        title: const Text('Flutter Task'),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: WebView(
-              initialUrl: 'https://uploads.gpseducation.com/test_125.html',
-              javascriptMode: JavascriptMode.unrestricted,
-              onWebViewCreated: (WebViewController webViewController) {
-                webViewController = webViewController;
-              },
-              javascriptChannels: <JavascriptChannel>{
-                JavascriptChannel(
-                  name: 'saveData',
-                  onMessageReceived: (JavascriptMessage message) {
-                    setState(() {
-                      textFromWebPage = message.message;
-                    });
-                  },
-                ),
-              },
-              onPageFinished: (String url) {
-                injectJavaScript();
-              },
-            ),
+      body: WebView(
+        initialUrl: 'https://uploads.gpseducation.com/test_125.html',
+        //allows JavaScript to run without any restrictions
+        // Use this mode if you need full JavaScript functionality within your WebView
+        javascriptMode: JavascriptMode.unrestricted,
+        //it is a callback that gets invoked when the WebView is created.
+        // This callback provides you with an instance of the WebViewController
+        // that allows you to control and interact with the WebView
+        onWebViewCreated: (WebViewController webViewController) {
+          webViewController = webViewController;
+        },
+        //javascriptChannels: Enables communication between JavaScript in the WebView and the Flutter app.
+        // JavascriptChannel: Defines a named channel for sending messages from JavaScript to Flutter.
+        // onMessageReceived: Handles messages sent from JavaScript, allowing you to update the Flutter UI or perform other actions in response.
+        javascriptChannels: <JavascriptChannel>{
+          JavascriptChannel(
+            name: 'saveData',
+            onMessageReceived: (JavascriptMessage message) {
+              String received = message.message;
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(received)));
+            },
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text('Received Value: $textFromWebPage'),
-          ),
-        ],
+        },
       ),
     );
-  }
-
-
-  void injectJavaScript() {
-    webViewController?.runJavascript('''
-      window.saveData = function(value) {
-        if (window.saveData.postMessage) {
-          window.saveData.postMessage(value);
-        } else {
-          console.log("saveData.postMessage is not available");
-        }
-      }
-    ''').then((result) {
-      print("JavaScript injected successfully");
-    }).catchError((error) {
-      print("Error injecting JavaScript: $error");
-    });
   }
 }
